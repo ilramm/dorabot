@@ -1,24 +1,39 @@
 package internal
 
 import (
-	"fmt"
+	"github.com/joho/godotenv"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 )
 
-const (
-	serverURL = "https://mm.binom.dev/"      // Replace with your Mattermost server URL
-	botToken  = "1j4rwqf8ijg89mchd9yous1cqw" // Replace with your bot token
-)
+var serverURL string
+var botToken string
+
+func init() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
+	// Get server URL and bot token from environment variables
+	serverURL = os.Getenv("SERVER_URL")
+	botToken = os.Getenv("BOT_TOKEN")
+
+	if serverURL == "" || botToken == "" {
+		log.Fatalf("Missing SERVER_URL or BOT_TOKEN in .env file")
+	}
+}
 
 func FetchPosts(channelID string) ([]byte, error) {
-	url := fmt.Sprintf("%sapi/v4/channels/%s/posts", serverURL, channelID)
+	url := serverURL + "api/v4/channels/" + channelID + "/posts"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", botToken))
+	req.Header.Set("Authorization", "Bearer "+botToken)
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -28,10 +43,5 @@ func FetchPosts(channelID string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	return ioutil.ReadAll(resp.Body)
 }
