@@ -1,39 +1,44 @@
 package internal
 
 import (
-	"github.com/joho/godotenv"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 )
 
-var serverURL string
-var botToken string
+type Config struct {
+	ServerURL string `json:"server_url"`
+	BotToken  string `json:"bot_token"`
+}
 
-func init() {
-	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+func LoadConfig(filePath string) (Config, error) {
+	var config Config
+	file, err := os.Open(filePath)
+	if err != nil {
+		return config, err
 	}
+	defer file.Close()
 
-	// Get server URL and bot token from environment variables
-	serverURL = os.Getenv("SERVER_URL")
-	botToken = os.Getenv("BOT_TOKEN")
-
-	if serverURL == "" || botToken == "" {
-		log.Fatalf("Missing SERVER_URL or BOT_TOKEN in .env file")
-	}
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&config)
+	return config, err
 }
 
 func FetchPosts(channelID string) ([]byte, error) {
-	url := serverURL + "api/v4/channels/" + channelID + "/posts"
+	config, err := LoadConfig("config.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %v", err)
+	}
+
+	url := fmt.Sprintf("%sapi/v4/channels/%s/posts", config.ServerURL, channelID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+botToken)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.BotToken))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -43,5 +48,10 @@ func FetchPosts(channelID string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	return ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
 }
