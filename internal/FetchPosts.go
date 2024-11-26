@@ -1,44 +1,24 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 )
 
-type Config struct {
-	ServerURL string `json:"server_url"`
-	BotToken  string `json:"bot_token"`
-}
-
-func LoadConfig(filePath string) (Config, error) {
-	var config Config
-	file, err := os.Open(filePath)
-	if err != nil {
-		return config, err
-	}
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&config)
-	return config, err
-}
+const (
+	serverURL = "https://mm.binom.dev/"      // Replace with your Mattermost server URL
+	botToken  = "1j4rwqf8ijg89mchd9yous1cqw" // Replace with your bot token
+)
 
 func FetchPosts(channelID string) ([]byte, error) {
-	config, err := LoadConfig("config.json")
-	if err != nil {
-		return nil, fmt.Errorf("failed to load configuration: %v", err)
-	}
-
-	url := fmt.Sprintf("%sapi/v4/channels/%s/posts", config.ServerURL, channelID)
+	url := fmt.Sprintf("%sapi/v4/channels/%s/posts", serverURL, channelID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.BotToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", botToken))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
