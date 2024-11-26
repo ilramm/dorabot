@@ -20,7 +20,7 @@ func Comments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	command := r.FormValue("command")
-	if command != "/comment" {
+	if command != "/ahead" {
 		http.Error(w, "Invalid command", http.StatusBadRequest)
 		return
 	}
